@@ -4,7 +4,10 @@ from archive.store import ArchiveStore
 from evaluation.accession import get_accepted_piece
 from evaluation.alignment import align_accepted_pair
 from evaluation.brier import score_brier
+from evaluation.prospective_review import issue_prospective_review
 from evaluation.store import AccessionStore
+
+__all__ = ['issue_review', 'issue_prospective_review']
 
 
 def issue_review(

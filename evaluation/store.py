@@ -1,6 +1,6 @@
 import sqlite3
 
-from evaluation.piece_content import FixedPiece, decode_piece, encode_piece
+from evaluation.piece_content import Piece, decode_piece, encode_piece
 from sqlite_tx import write_transaction
 from study.identity import validate_identifier
 
@@ -23,7 +23,7 @@ class AccessionStore:
                 )
             ''')
 
-    def admit(self, piece: FixedPiece) -> str:
+    def admit(self, piece: Piece) -> str:
         key = (piece.kind, piece.roster.batch_id, piece.source_id)
         payload = encode_piece(piece)
         with write_transaction(self.connection):
@@ -43,7 +43,7 @@ class AccessionStore:
                 number = cursor.lastrowid
         return f'piece-{number}'
 
-    def load_piece(self, accession_id: str) -> FixedPiece:
+    def load_piece(self, accession_id: str) -> Piece:
         token = validate_identifier(accession_id, 'accession_id')
         row = self.connection.execute(
             'SELECT id, payload FROM accepted_pieces WHERE id = ?',

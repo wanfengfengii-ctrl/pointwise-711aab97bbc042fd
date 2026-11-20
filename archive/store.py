@@ -23,6 +23,17 @@ class ArchiveStore:
                     report_id INTEGER PRIMARY KEY REFERENCES review_reports(id)
                 )
             ''')
+            self.connection.execute('''
+                CREATE TABLE IF NOT EXISTS prospective_reports (
+                    id INTEGER PRIMARY KEY,
+                    body TEXT NOT NULL
+                )
+            ''')
+            self.connection.execute('''
+                CREATE TABLE IF NOT EXISTS prospective_receipts (
+                    report_id INTEGER PRIMARY KEY REFERENCES prospective_reports(id)
+                )
+            ''')
 
     def commit_review(self, body: str) -> str:
         with write_transaction(self.connection):
@@ -42,3 +53,27 @@ class ArchiveStore:
         if row is None or token != f'review-{row[1]}':
             raise KeyError(token)
         return row[0], f'review-{row[1]}'
+
+    # -- prospective reports ----------------------------------------------
+    def commit_prospective(self, body: str) -> str:
+        with write_transaction(self.connection):
+            report = self.connection.execute(
+                'INSERT INTO prospective_reports (body) VALUES (?)', (body,)
+            )
+            number = report.lastrowid
+            self.connection.execute(
+                'INSERT INTO prospective_receipts (report_id) VALUES (?)', (number,)
+            )
+        return f'prospective-review-{number}'
+
+    def load_prospective(self, report_id: str) -> tuple[str, str]:
+        token = validate_identifier(report_id, 'report_id')
+        row = self.connection.execute('''
+            SELECT reports.body, receipts.report_id
+            FROM prospective_reports AS reports
+            JOIN prospective_receipts AS receipts ON receipts.report_id = reports.id
+            WHERE reports.id = ?
+        ''', (token.removeprefix('prospective-review-'),)).fetchone()
+        if row is None or token != f'prospective-review-{row[1]}':
+            raise KeyError(token)
+        return row[0], f'prospective-review-{row[1]}'

@@ -43,3 +43,18 @@ python3 -B -m examples.workday
 名称使用非空白字符串，保留原字符和大小写。概率接受整数、`Fraction`、可精确解析的有理数字符串，或 `{"numerator": 1, "denominator": 4}` 表示。二值结果必须是整数 0 或 1。报告按清册顺序记录每片的概率、二值、两处来源和平方误差。全批均值等权，每片只计一次。JSON 有理表示使用整数分子和正整数分母。
 
 非法输入、同号异内容、未齐封批和选件失配报 `ValueError`。未知有效编号报 `KeyError`。等价概率行重排、重复揭盲、重封和等价来件重投均保留已提交的原身份。归档写入失败传播 SQLite 错误，正文与回执一同回滚。可以沿用原选件重试；成功后用正式号重领存值。
+
+## 揭盲前前瞻评分
+
+`PROSPECTIVE.md` 定义揭盲前锁定的前瞻评分。它与事后复盘共用同一批次清册、`bench.reveal.reveal_result` 的实际首揭和来件信封。
+
+| 入口 | 参数和结果 |
+| --- | --- |
+| `bench.reveal.lock_forecast` | `(studies, bench, batch_id, specimen_id, request_id, probability, source, *, custodian=None)` 提交具名预报，返回含 `status` 的裁决字典。`custodian` 为可选的 `AccessionStore`。 |
+| `bench.reveal.read_locked_forecast` | `(bench, batch_id, request_id, *, custodian=None)` 领出成功锁定的原概率件；预报源关闭后仍可领。 |
+| `bench.closeout.close_prospective` | `(studies, bench, batch_id)` 全清册首揭后固定封批件；未齐报 `ValueError`。 |
+| `evaluation.prospective_review.issue_prospective_review` | `(accessions, archive, results_accession, forecast_accessions)` 核对后签出前瞻报告；缺正文时返回待证。 |
+| `archive.lookup.read_prospective_review` | `(archive, report_id, *, as_json=False)` 按正式号领回同一份已签字典。 |
+
+`prospective.pieces` 生成两类来件：概率件 `kind` 为 `prospective_forecast`（`source_id` 为请求号），封批件 `kind` 为 `prospective_results`（`source_id` 为固定封批号）。两类均沿用 V1 的批号、清册号、试片序列和有理数编码。锁定裁决按 `bench` 库自身的提交顺序判定，不依赖跨库时钟；每片至多一次成功锁定。
+
